@@ -124,7 +124,7 @@ uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
 
 ## 🐳 Triển khai với Docker & Docker Compose
 
-Khởi chạy cả API và MLflow Server chỉ bằng một lệnh:
+Khởi chạy cả API và MLflow Server:
 ```bash
 docker compose up --build -d
 ```
