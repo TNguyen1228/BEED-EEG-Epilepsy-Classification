@@ -86,12 +86,21 @@ def train_pipeline(config_path: str = "config/config.yaml") -> Pipeline:
             mlflow.log_metric("f1_macro", metrics["f1_macro"])
             mlflow.log_metric("f1_weighted", metrics["f1_weighted"])
             mlflow.log_metric("precision_macro", metrics["precision_macro"])
-            mlflow.log_metric("recall_macro", metrics["recall_macro"])
-            mlflow.sklearn.log_model(
-                sk_model=full_pipeline,
-                artifact_path="model_pipeline",
-                registered_model_name="BEED_EEG_RandomForest"
-            )
+            try:
+                mlflow.sklearn.log_model(
+                    sk_model=full_pipeline,
+                    artifact_path="model_pipeline",
+                    registered_model_name="BEED_EEG_RandomForest",
+                    serialization_format="cloudpickle"
+                )
+            except TypeError:
+                # In case older/newer mlflow versions expect skops_trusted_types
+                mlflow.sklearn.log_model(
+                    sk_model=full_pipeline,
+                    artifact_path="model_pipeline",
+                    registered_model_name="BEED_EEG_RandomForest",
+                    skops_trusted_types=["src.features.feature_engineering.EEGSpectralAndSpatialFeatureExtractor"]
+                )
             mlflow.log_artifact(metrics_path, artifact_path="evaluation")
             
         logger.info("Pipeline training execution finished successfully.")
