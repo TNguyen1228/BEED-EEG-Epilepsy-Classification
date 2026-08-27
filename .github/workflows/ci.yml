@@ -33,8 +33,10 @@ jobs:
         flake8 src api tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Run Pytest Test Suite
+      env:
+        PYTHONPATH: .
       run: |
-        pytest tests/ -v
+        python -m pytest tests/ -v
 
     - name: Execute Model Training & Generate Artifacts
       run: |
