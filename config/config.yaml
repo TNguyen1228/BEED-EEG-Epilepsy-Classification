@@ -46,7 +46,7 @@ model:
 
 mlflow:
   experiment_name: "BEED_Epilepsy_RF_Experiment"
-  tracking_uri: "file:./mlruns"
+  tracking_uri: "sqlite:///mlflow.db"
 
 api:
   host: "0.0.0.0"

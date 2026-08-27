@@ -8,7 +8,8 @@ services:
       - "8000:8000"
     volumes:
       - ./models:/app/models
-      - ./mlruns:/app/mlruns
+      - ./mlartifacts:/app/mlartifacts
+      - ./mlflow.db:/app/mlflow.db
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
@@ -19,7 +20,6 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./mlruns:/mlflow/mlruns
-    command: mlflow ui --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow/mlruns
+      - ./:/mlflow
+    command: mlflow ui --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////mlflow/mlflow.db --default-artifact-root /mlflow/mlartifacts
     restart: unless-stopped
-

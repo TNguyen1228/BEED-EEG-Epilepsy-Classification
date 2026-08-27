@@ -8,6 +8,7 @@ try:
     import mlflow
     import mlflow.sklearn
     MLFLOW_AVAILABLE = True
+    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
 except ImportError:
     MLFLOW_AVAILABLE = False
 

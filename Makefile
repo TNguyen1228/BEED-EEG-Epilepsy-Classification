@@ -24,7 +24,7 @@ serve:
 	uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
 
 mlflow:
-	mlflow ui --port 5000
+	mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 
 lint:
 	flake8 src api tests

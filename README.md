@@ -94,7 +94,7 @@ python -m src.models.train
 
 Để mở giao diện trực quan **MLflow UI**:
 ```bash
-mlflow ui --port 5000
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 ```
 Truy cập: `http://localhost:5000` để so sánh các lần huấn luyện (experiments/runs).
 
