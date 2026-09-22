@@ -29,8 +29,8 @@ def train_pipeline(config_path: str = "config/config.yaml") -> Pipeline:
     X_train, X_test, y_train, y_test = load_and_split_data(config_path)
     rf_params = config["model"]["params"]
     
-    # 2. Build Full Pipeline (Preprocessor with PSD & Spatial Features + Classifier)
-    preprocessor = build_preprocessing_pipeline(include_psd=True, include_spatial=True)
+    # 2. Build Full Pipeline (Preprocessor with Spatial Spectrum & Statistics + Classifier)
+    preprocessor = build_preprocessing_pipeline(include_spatial_spectrum=True, include_statistics=True)
     rf_classifier = RandomForestClassifier(**rf_params)
     
     full_pipeline = Pipeline([
