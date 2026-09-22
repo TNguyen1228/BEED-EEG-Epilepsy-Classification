@@ -11,38 +11,33 @@ Hệ thống End-to-End MLOps hoàn chỉnh phục vụ bài toán phân loại 
 │   └── workflows/
 │       └── ci.yml               # CI Pipeline (Linting, Pytest, Training Validation)
 ├── api/
-│   ├── __init__.py
 │   ├── app.py                   # FastAPI REST API service
 │   └── schemas.py               # Pydantic schemas cho Single & Batch prediction
 ├── config/
 │   └── config.yaml              # Tập trung cấu hình tham số, đường dẫn & nhãn
-├── data/
-│   ├── raw/                     # Thư mục chứa dữ liệu thô
-│   └── processed/               # Dữ liệu sau khi xử lý
 ├── models/                      # Chứa model weights (.joblib) & metrics.json
 ├── src/
 │   ├── __init__.py
 │   ├── data/
-│   │   ├── __init__.py
 │   │   └── data_loader.py       # Data validation & Stratified train/test split
 │   ├── features/
-│   │   ├── __init__.py
-│   │   └── feature_engineering.py # EEG Scalers, PSD & Spectral/Spatial Feature extractors
+│   │   └── feature_engineering.py # Spatial Frequency Spectrum & Cross-Channel Statistics
 │   ├── models/
-│   │   ├── __init__.py
 │   │   ├── train.py             # Huấn luyện Random Forest & MLflow tracking
 │   │   └── evaluate.py          # Tính toán F1, Confusion Matrix & Metrics
 │   └── utils/
-│       ├── __init__.py
 │       └── logger.py            # Structured logging
 ├── tests/
+│   ├── conftest.py              # Pytest configuration & path setup
 │   ├── test_data.py             # Kiểm thử chất lượng dữ liệu
 │   ├── test_model.py            # Kiểm thử pipeline & mô hình
 │   └── test_api.py              # Kiểm thử API endpoints
 ├── BEED_Data.csv                # Dữ liệu gốc (8000 mẫu x 16 kênh + nhãn y)
+├── .gitignore                   # Loại trừ pycache, venv, mlruns, IDE files
 ├── Dockerfile                   # Production Docker image
 ├── docker-compose.yml           # Khởi chạy đồng thời API Service & MLflow UI
 ├── Makefile                     # Shortcut các lệnh thao tác nhanh
+├── pytest.ini                   # Pytest settings (pythonpath, testpaths)
 ├── requirements.txt             # Danh sách thư viện phụ thuộc
 └── README.md                    # Hướng dẫn chi tiết
 ```
