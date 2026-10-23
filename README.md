@@ -1,6 +1,6 @@
 # 🧠 BEED EEG Epilepsy Classification - End-to-End MLOps
 
-Hệ thống End-to-End MLOps hoàn chỉnh phục vụ bài toán phân loại co giật động kinh dựa trên tín hiệu sóng não đa kênh (16 kênh EEG) từ bộ dữ liệu **BEED (Bangalore EEG Epilepsy Dataset)** với mô hình **Random Forest**.
+Hệ thống End-to-End MLOps hoàn chỉnh phục vụ bài toán phân loại co giật động kinh dựa trên tín hiệu điện não đồ (EEG) từ bộ dữ liệu **BEED (Bangalore EEG Epilepsy Dataset)** với mô hình **Random Forest**.
 
 ---
 
@@ -21,7 +21,7 @@ Hệ thống End-to-End MLOps hoàn chỉnh phục vụ bài toán phân loại 
 │   ├── data/
 │   │   └── data_loader.py       # Data validation & Stratified train/test split
 │   ├── features/
-│   │   └── feature_engineering.py # Spatial Frequency Spectrum & Cross-Channel Statistics
+│   │   └── feature_engineering.py # Power Spectral Density & Window Statistics
 │   ├── models/
 │   │   ├── train.py             # Huấn luyện Random Forest & MLflow tracking
 │   │   └── evaluate.py          # Tính toán F1, Confusion Matrix & Metrics
@@ -32,7 +32,7 @@ Hệ thống End-to-End MLOps hoàn chỉnh phục vụ bài toán phân loại 
 │   ├── test_data.py             # Kiểm thử chất lượng dữ liệu
 │   ├── test_model.py            # Kiểm thử pipeline & mô hình
 │   └── test_api.py              # Kiểm thử API endpoints
-├── BEED_Data.csv                # Dữ liệu gốc (8000 mẫu x 16 kênh + nhãn y)
+├── BEED_Data.csv                # Dữ liệu gốc (8000 dòng x 16 giá trị X1–X16 + nhãn y)
 ├── .gitignore                   # Loại trừ pycache, venv, mlruns, IDE files
 ├── Dockerfile                   # Production Docker image
 ├── docker-compose.yml           # Khởi chạy đồng thời API Service & MLflow UI
@@ -44,25 +44,36 @@ Hệ thống End-to-End MLOps hoàn chỉnh phục vụ bài toán phân loại 
 
 ---
 
+## 📄 Về dữ liệu (X1–X16 là gì?)
+
+Theo mô tả và bài báo gốc ([Najmusseher & Banu, IJCDS 2025](http://dx.doi.org/10.12785/ijcds/1571020131)), BEED được ghi từ **16 kênh EEG** (hệ 10–20, **256 Hz**, mỗi bản ghi 20 giây). Tuy nhiên tài liệu **không nói rõ** một dòng trong CSV là gì. Phân tích `BEED_Data.csv` cho thấy mỗi dòng nhiều khả năng là **16 mẫu thời gian liên tiếp của một kênh** (~62.5 ms), không phải 16 điện cực tại một thời điểm:
+
+* Tương quan giữa hai cột chỉ phụ thuộc khoảng cách |i−j| (0.87 ở lag 1, giảm về ~0 ở lag 6–9), đúng kiểu tự tương quan của chuỗi thời gian.
+* Độ lệch chuẩn của 16 cột gần như bằng nhau (~37); điện cực ở các vùng não khác nhau thường có biên độ khác nhau.
+* Định dạng `X1…Xn, y` giống bộ BONN trên UCI, nơi các cột là mẫu thời gian.
+* Các dòng độc lập với nhau (tương quan dòng t với dòng t+1 ≈ 0.09).
+
+Đây là suy luận từ dữ liệu, chưa được tác giả bộ dữ liệu xác nhận. File CSV cũng khác mô tả công khai (8000 dòng / 4 lớp cân bằng, thay vì 16.000 đoạn / nhãn nhị phân).
+
+---
+
 ## 🔬 Kỹ thuật Trích xuất Đặc trưng (Feature Engineering)
 
-Trong các bài toán phân tích tín hiệu điện não đồ (EEG), giá trị biên độ tĩnh (raw amplitude) của từng kênh riêng lẻ thường dễ gây nhầm lẫn giữa **co giật cục bộ (Focal Seizure)** và **nhiễu cử động sinh lý (Seizure Mimic / Artifacts)** như chớp mắt hay co cơ.
-
-Dự án đã tích hợp bộ biến đổi đặc trưng đa chiều (**`EEGSpectralAndSpatialFeatureExtractor`**) chuẩn `scikit-learn Transformer` vào Pipeline:
+Dự án tích hợp bộ biến đổi đặc trưng (**`EEGSpectralAndSpatialFeatureExtractor`**) chuẩn `scikit-learn Transformer` vào Pipeline. Nó giữ 16 giá trị gốc và bổ sung các đặc trưng dưới đây, tính trên từng cửa sổ 16 mẫu. Tên class còn chữ "Spatial" từ cách hiểu cũ và được giữ nguyên để model đã lưu vẫn load được.
 
 ### 1. Đặc trưng Miền Tần số & Mật độ Phổ Công suất (Frequency & PSD Features)
-* **Power Spectral Density (PSD)**: Tính toán phân bố công suất qua từng bin tần số bằng biến đổi Fourier thực (**`np.fft.rfft`**).
-* **Total Spectral Power**: Tổng năng lượng công suất sóng não của toàn bộ các kênh.
-* **Spectral Entropy (Độ hỗn loạn phổ)**: Đo lường mức độ đồng bộ/hỗn loạn của năng lượng não bộ (giúp tách biệt co giật thật và các dao động cục bộ ngắn).
-* **Spectral Centroid (Trọng tâm tần số)**: Xác định trọng tâm tần số dao động trung bình của các điện cực.
-* **High-to-Low Frequency Power Ratio**: Tỷ lệ công suất tần số cao/thấp nhằm phân biệt sóng chậm với các gai phóng điện tần số cao.
+* **Power Spectral Density (PSD)**: Phân bố công suất qua 9 bin tần số bằng biến đổi Fourier thực (**`np.fft.rfft`**). Với 16 mẫu ở 256 Hz, các bin cách nhau **16 Hz** (0, 16, …, 128 Hz), nên độ phân giải rất thô: các dải delta/theta/alpha (< 13 Hz) đều nằm trong bin 0.
+* **Total Spectral Power**: Tổng công suất của cửa sổ.
+* **Spectral Entropy (Độ hỗn loạn phổ)**: Năng lượng trải đều trên nhiều bin (entropy cao) hay dồn vào vài bin (entropy thấp).
+* **Spectral Centroid (Trọng tâm tần số)**: Trọng tâm phổ, tính theo chỉ số bin.
+* **High-to-Low Frequency Power Ratio**: Tỷ lệ công suất bin 4–8 (64–128 Hz) so với bin 0–3 (0–48 Hz), phản ánh mức độ biến thiên nhanh như gai nhọn hay nhiễu cơ.
 
-### 2. Đặc trưng Miền Không gian & Thống kê Đa kênh (Spatial & Statistical Features)
-* **Spatial Gradients ($\Delta X = X_{i+1} - X_i$)**: Gradient biến thiên điện thế giữa các điện cực lân cận trên vỏ não.
+### 2. Đặc trưng Thống kê trong Cửa sổ (Window Statistics)
+* **Sai phân bậc một ($\Delta X = X_{i+1} - X_i$)**: Độ thay đổi giữa hai mẫu liên tiếp, xấp xỉ đạo hàm theo thời gian.
 * **Statistical Moments**: Mean, Standard Deviation, Variance, Skewness (độ lệch), Kurtosis (độ nhọn), Signal Energy ($\sum X^2$) và Peak-to-Peak Amplitude.
 
 ### 📊 Hiệu quả cải tiến trước và sau khi thêm PSD:
-| Chỉ số | Baseline (Raw EEG) | **Sau khi thêm PSD & Spatial Features** | Mức độ cải thiện |
+| Chỉ số | Baseline (Raw EEG) | **Sau khi thêm PSD & Statistical Features** | Mức độ cải thiện |
 | :--- | :---: | :---: | :---: |
 | **Accuracy** | `89.69%` | **`93.81%`** | 🟢 **+4.12%** |
 | **Macro F1-Score** | `89.68%` | **`93.83%`** | 🟢 **+4.15%** |
